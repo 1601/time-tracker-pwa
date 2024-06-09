@@ -7,6 +7,9 @@ const TimeTracker = () => {
   const [timeOut, setTimeOut] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [unsyncedData, setUnsyncedData] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('Today');
+  const [availableDates, setAvailableDates] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -24,6 +27,27 @@ const TimeTracker = () => {
         const lastTime = times[times.length - 1];
         setTimeIn(lastTime.timeIn);
         setTimeOut(lastTime.timeOut);
+
+        const today = new Date().toISOString().split('T')[0];
+        const todayTimes = times.filter(
+          time => time.timeIn && time.timeIn.startsWith(today)
+        );
+        setHistory(todayTimes);
+
+        const uniqueDates = [
+          ...new Set(
+            times.map(time => time.timeIn.split('T')[0])
+          ),
+        ].map(date => ({
+          value: date,
+          label: new Date(date).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'long',
+            year: '2-digit',
+          }),
+        }));
+
+        setAvailableDates([{ value: 'Today', label: 'Today' }, ...uniqueDates]);
       }
     })();
 
@@ -51,11 +75,9 @@ const TimeTracker = () => {
     const store = tx.objectStore('times');
     const allTimes = await store.getAll();
 
-    // Replace this with your actual backend sync logic
     try {
       await Promise.all(allTimes.map(async (time) => {
         if (!time.synced) {
-          // Simulate backend sync
           console.log('Syncing data:', time);
           time.synced = true;
           const tx = db.transaction('times', 'readwrite');
@@ -82,6 +104,8 @@ const TimeTracker = () => {
     if (isOffline) {
       setUnsyncedData(true);
     }
+
+    loadHistoryForDate('Today');
   };
 
   const handleTimeOut = async () => {
@@ -99,6 +123,36 @@ const TimeTracker = () => {
     if (isOffline) {
       setUnsyncedData(true);
     }
+
+    loadHistoryForDate('Today');
+  };
+
+  const loadHistoryForDate = async (date) => {
+    const db = await openDB('time-tracker', 1);
+    const tx = db.transaction('times', 'readonly');
+    const store = tx.objectStore('times');
+
+    let times;
+    if (date === 'Today') {
+      const today = new Date().toISOString().split('T')[0];
+      times = await store.getAll();
+      times = times.filter(
+        time => time.timeIn && time.timeIn.startsWith(today)
+      );
+    } else {
+      times = await store.getAll();
+      times = times.filter(
+        time => time.timeIn && time.timeIn.startsWith(date)
+      );
+    }
+
+    setHistory(times);
+  };
+
+  const handleDateChange = (event) => {
+    const selectedDate = event.target.value;
+    setSelectedDate(selectedDate);
+    loadHistoryForDate(selectedDate);
   };
 
   return (
@@ -122,6 +176,35 @@ const TimeTracker = () => {
           You have unsynced data. Please wait while it is being synced.
         </div>
       )}
+      <div>
+        <select value={selectedDate} onChange={handleDateChange}>
+          {availableDates.map(date => (
+            <option key={date.value} value={date.value}>{date.label}</option>
+          ))}
+        </select>
+        <table>
+          <thead>
+            <tr>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.map((entry, index) => (
+              <tr key={index}>
+                <td>{new Date(entry.timeIn).toLocaleString()}</td>
+                <td>{entry.timeOut ? new Date(entry.timeOut).toLocaleString() : 'Not yet'}</td>
+                <td>
+                  {entry.timeOut ? 
+                    new Date(new Date(entry.timeOut) - new Date(entry.timeIn)).toISOString().substr(11, 8) 
+                    : 'In progress'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
