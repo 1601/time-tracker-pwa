@@ -1,10 +1,10 @@
 // src/serviceWorkerRegistration.js
 const isLocalhost = Boolean(
     window.location.hostname === 'localhost' ||
-      window.location.hostname === '[::1]' ||
-      window.location.hostname.match(
-        /^127(?:\.\d+){0,2}\.\d+$/
-      )
+    window.location.hostname === '[::1]' ||
+    window.location.hostname.match(
+      /^127(?:\.\d+){0,2}\.\d+$/
+    )
   );
   
   export function register(config) {
@@ -23,7 +23,7 @@ const isLocalhost = Boolean(
           navigator.serviceWorker.ready.then(() => {
             console.log(
               'This web app is being served cache-first by a service ' +
-                'worker. To learn more, visit https://cra.link/PWA'
+              'worker. To learn more, visit https://cra.link/PWA'
             );
           });
         } else {
@@ -47,7 +47,7 @@ const isLocalhost = Boolean(
               if (navigator.serviceWorker.controller) {
                 console.log(
                   'New content is available and will be used when all ' +
-                    'tabs for this page are closed. See https://cra.link/PWA.'
+                  'tabs for this page are closed. See https://cra.link/PWA.'
                 );
   
                 if (config && config.onUpdate) {
